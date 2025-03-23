@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tarq"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Python TA library build with rust"
 authors = ["Sigurd Lund <siglun@gmail.com>"]
 

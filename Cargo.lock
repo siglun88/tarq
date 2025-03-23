@@ -652,7 +652,7 @@ checksum = "e502f78cdbb8ba4718f566c418c52bc729126ffd16baee5baa718cf25dd5a69a"
 
 [[package]]
 name = "tarq"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "criterion",
  "numpy",
