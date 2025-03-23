@@ -1,7 +1,7 @@
 import timeit
 import numpy as np
 import talib
-import tarq as pytarq
+import tarq
 from memory_profiler import memory_usage
 
 # Generate large test dataset (5,000,000 data points)
@@ -21,46 +21,46 @@ def measure_memory(func, *args):
     return max(mem_usage) - min(mem_usage)  # Peak memory usage
 
 
-### PYTARQ BENCHMARK FUNCTIONS ###
-def pytarq_sma():
-    return pytarq.sma(price_data, period)
+### TARQ BENCHMARK FUNCTIONS ###
+def tarq_sma():
+    return tarq.sma(price_data, period)
 
 
-def pytarq_ema():
-    return pytarq.ema(price_data, period)
+def tarq_ema():
+    return tarq.ema(price_data, period)
 
-def pytarq_wma():
-    return pytarq.wma(price_data, period)
+def tarq_wma():
+    return tarq.wma(price_data, period)
 
-def pytarq_atr():
-    return pytarq.atr(high_data, low_data, price_data, period)
+def tarq_atr():
+    return tarq.atr(high_data, low_data, price_data, period)
 
-def pytarq_vwma():
-    return pytarq.vwma(price_data, volume_data, period)
+def tarq_vwma():
+    return tarq.vwma(price_data, volume_data, period)
 
-def pytarq_dema():
-    return pytarq.dema(price_data, period)
+def tarq_dema():
+    return tarq.dema(price_data, period)
 
-def pytarq_tema():
-    return pytarq.tema(price_data, period)
+def tarq_tema():
+    return tarq.tema(price_data, period)
 
-def pytarq_kama():
-    return pytarq.kama(price_data, period)
+def tarq_kama():
+    return tarq.kama(price_data, period)
 
-def pytarq_bbands_sma():
-    return pytarq.bbands(price_data, period, std_dev, "sma", None)
+def tarq_bbands_sma():
+    return tarq.bbands(price_data, period, std_dev, "sma", None)
 
-def pytarq_bbands_ema():
-    return pytarq.bbands(price_data, period, std_dev, "ema", volume_data)
+def tarq_bbands_ema():
+    return tarq.bbands(price_data, period, std_dev, "ema", volume_data)
 
-def pytarq_bbands_vwma():
-    return pytarq.bbands(price_data, period, std_dev, "vwma", volume_data)
+def tarq_bbands_vwma():
+    return tarq.bbands(price_data, period, std_dev, "vwma", volume_data)
 
-def pytarq_bbpb():
-    return pytarq.bbpb(price_data, period, std_dev, "sma")
+def tarq_bbpb():
+    return tarq.bbpb(price_data, period, std_dev, "sma")
 
-def pytarq_stddev():
-    return pytarq.stddev(price_data, period)
+def tarq_stddev():
+    return tarq.stddev(price_data, period)
 
 ### TA-LIB BENCHMARK FUNCTIONS ###
 def talib_sma():
@@ -101,38 +101,38 @@ def talib_dummy():
 ### RUN BENCHMARKS ###
 results = {}
 
-for name, func_pytarq, func_talib in [
-    ("SMA", pytarq_sma, talib_sma),
-    ("EMA", pytarq_ema, talib_ema),
-    ("VWMA", pytarq_vwma, talib_dummy),
-    ("WMA", pytarq_wma, talib_wma),
-    ("ATR", pytarq_atr, talib_atr),
-    ("DEMA", pytarq_dema, talib_dema),
-    ("TEMA", pytarq_tema, talib_tema),
-    ("KAMA", pytarq_kama, talib_kama),
-    ("BBands (SMA)", pytarq_bbands_sma, talib_bbands_sma),
-    ("BBands (EMA)", pytarq_bbands_ema, talib_bbands_ema),
-    ("BBands (VWMA)", pytarq_bbands_vwma, talib_dummy),
-    ("BBands percent bandwidth", pytarq_bbpb, talib_dummy),
-    ("Std Deviation", pytarq_stddev, talib_steddev),
+for name, func_tarq, func_talib in [
+    ("SMA", tarq_sma, talib_sma),
+    ("EMA", tarq_ema, talib_ema),
+    ("VWMA", tarq_vwma, talib_dummy),
+    ("WMA", tarq_wma, talib_wma),
+    ("ATR", tarq_atr, talib_atr),
+    ("DEMA", tarq_dema, talib_dema),
+    ("TEMA", tarq_tema, talib_tema),
+    ("KAMA", tarq_kama, talib_kama),
+    ("BBands (SMA)", tarq_bbands_sma, talib_bbands_sma),
+    ("BBands (EMA)", tarq_bbands_ema, talib_bbands_ema),
+    ("BBands (VWMA)", tarq_bbands_vwma, talib_dummy),
+    ("BBands percent bandwidth", tarq_bbpb, talib_dummy),
+    ("Std Deviation", tarq_stddev, talib_steddev),
 ]:
     # Execution Time
-    pytarq_time = timeit.timeit(func_pytarq, number=num_runs) / num_runs
+    tarq_time = timeit.timeit(func_tarq, number=num_runs) / num_runs
     talib_time = timeit.timeit(func_talib, number=num_runs) / num_runs
 
     # Memory Usage
-    pytarq_mem = measure_memory(func_pytarq)
+    tarq_mem = measure_memory(func_tarq)
     talib_mem = measure_memory(func_talib)
 
     results[name] = {
-        "Pytarq Time (s)": pytarq_time,
+        "Pytarq Time (s)": tarq_time,
         "TA-Lib Time (s)": talib_time,
-        "Pytarq Mem (MiB)": pytarq_mem,
+        "Pytarq Mem (MiB)": tarq_mem,
         "TA-Lib Mem (MiB)": talib_mem,
     }
 
     print(f"{name}:")
-    print(f"  Pytarq   → Time: {pytarq_time:.6f}s, Memory: {pytarq_mem:.3f} MiB")
+    print(f"  Pytarq   → Time: {tarq_time:.6f}s, Memory: {tarq_mem:.3f} MiB")
     print(f"  TA-Lib   → Time: {talib_time:.6f}s, Memory: {talib_mem:.3f} MiB\n")
 
 

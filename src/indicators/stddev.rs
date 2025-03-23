@@ -91,7 +91,7 @@ impl<'a> StdDev<'a> {
     ///
     /// assert!(stddev.is_ok());
     /// ```
-    pub fn new(data: &'a [f64], period: usize, ddof: Option<usize>) -> Result<Self, String> {
+    pub fn new(data: &'a [f64], period: usize, ddof: usize) -> Result<Self, String> {
         if data.len() < period {
             return Err("Insufficient data for the given period".to_string());
         }
@@ -107,7 +107,7 @@ impl<'a> StdDev<'a> {
             index: 0,
             sma,
             sum_sq: 0.0,
-            ddof: ddof.unwrap_or(0),
+            ddof,
         })
     }
 }
@@ -177,7 +177,7 @@ mod tests {
     fn test_stddev_valid_output() {
         let data = vec![10.0, 12.0, 23.0, 23.0, 16.0, 20.0, 25.0, 30.0, 28.0, 26.0];
         let period = 3;
-        let mut std_dev = StdDev::new(&data, period, None).unwrap();
+        let mut std_dev = StdDev::new(&data, period, 0).unwrap();
 
         let result = std_dev.calculate().unwrap();
 
@@ -193,7 +193,7 @@ mod tests {
     fn test_stddev_invalid_input() {
         let data = vec![10.0, 12.0, 23.0, 23.0];
         let period = 5; // Period larger than dataset
-        let std_dev = StdDev::new(&data, period, None);
+        let std_dev = StdDev::new(&data, period, 0);
 
         assert!(std_dev.is_err(), "Expected error for invalid input");
     }
@@ -202,7 +202,7 @@ mod tests {
     fn test_stddev_too_short_data() {
         let data = vec![10.0, 12.0]; // Too short for std dev calculation
         let period = 3;
-        let std_dev = StdDev::new(&data, period, None);
+        let std_dev = StdDev::new(&data, period, 0);
 
         assert!(std_dev.is_err(), "Expected error for too short data");
     }

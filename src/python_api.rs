@@ -1,3 +1,4 @@
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 use numpy::{PyArray1, PyReadonlyArray1};
@@ -20,7 +21,7 @@ use crate::Indicator;
 
 /// Python module definition
 #[pymodule]
-fn tarq(_py: Python, m: &PyModule) -> PyResult<()> {
+fn tarq(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(sma, m)?)?;
     m.add_function(wrap_pyfunction!(ema, m)?)?;
     m.add_function(wrap_pyfunction!(vwma, m)?)?;
@@ -43,18 +44,14 @@ fn prepend_vec_in_place(data: &mut Vec<f64>, prepend_count: usize, value: f64) {
 
 /// Optimized SMA function with zero-copy NumPy
 #[pyfunction]
-fn sma<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyResult<&'py PyArray1<f64>> {
+fn sma<'py>(py: Python<'py>, data: PyReadonlyArray1<'py, f64>, period: usize) -> PyResult<Bound<'py, PyArray1<f64>>> {
     let data_slice = data.as_slice()?;
-    let mut sma = Sma::new(data_slice, period).unwrap();
-    
-    let mut result = sma.calculate().map_err(PyErr::new::<pyo3::exceptions::PyValueError, _>)?;
+    let mut sma = Sma::new(data_slice, period).map_err(|e| PyValueError::new_err(e.to_string()))?;
 
-    let prepend_count = data_slice.len() - result.len();
-    
-    
+    let mut result = sma.calculate().map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+    let prepend_count = data_slice.len().saturating_sub(result.len());
     prepend_vec_in_place(&mut result, prepend_count, f64::NAN);
-   
-
 
     Ok(PyArray1::from_vec(py, result))
 }
@@ -62,7 +59,7 @@ fn sma<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyRe
 
 /// Optimized EMA function
 #[pyfunction]
-fn ema<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyResult<&'py PyArray1<f64>> {
+fn ema<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyResult<Bound<'py, PyArray1<f64>>> {
     let data_slice = data.as_slice()?;
     let mut ema = Ema::new(data_slice, period).unwrap();
     let mut result = ema.calculate().map_err(PyErr::new::<pyo3::exceptions::PyValueError, _>)?;
@@ -75,7 +72,7 @@ fn ema<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyRe
 
 /// Optimized WMA function
 #[pyfunction]
-fn wma<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyResult<&'py PyArray1<f64>> {
+fn wma<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyResult<Bound<'py, PyArray1<f64>>> {
     let data_slice = data.as_slice()?;
     let mut wma = Wma::new(data_slice, period).unwrap();
     let mut result = wma.calculate().map_err(PyErr::new::<pyo3::exceptions::PyValueError, _>)?;
@@ -87,7 +84,7 @@ fn wma<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyRe
 }
 
 #[pyfunction]
-fn dema<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyResult<&'py PyArray1<f64>> {
+fn dema<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyResult<Bound<'py, PyArray1<f64>>> {
     let data_slice = data.as_slice()?;
     let mut dema = Dema::new(data_slice, period).unwrap();
     let mut result = dema.calculate().map_err(PyErr::new::<pyo3::exceptions::PyValueError, _>)?;
@@ -99,7 +96,7 @@ fn dema<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyR
 }
 
 #[pyfunction]
-fn tema<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyResult<&'py PyArray1<f64>> {
+fn tema<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyResult<Bound<'py, PyArray1<f64>>> {
     let data_slice = data.as_slice()?;
     let mut tema = Tema::new(data_slice, period).unwrap();
     let mut result = tema.calculate().map_err(PyErr::new::<pyo3::exceptions::PyValueError, _>)?;
@@ -111,9 +108,10 @@ fn tema<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize) -> PyR
 }
 
 #[pyfunction]
-fn kama<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: Option<usize>, fast: Option<usize>, slow: Option<usize>) -> PyResult<&'py PyArray1<f64>> {
+#[pyo3(signature = (data, period = 10, fast = 2, slow = 30))]
+fn kama<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize, fast: usize, slow: usize) -> PyResult<Bound<'py, PyArray1<f64>>> {
     let data_slice = data.as_slice()?;
-    let mut kama = Kama::new(data_slice, period.unwrap_or(10), fast.unwrap_or(2), slow.unwrap_or(30)).unwrap();
+    let mut kama = Kama::new(data_slice, period, fast, slow).unwrap();
     let mut result = kama.calculate().map_err(PyErr::new::<pyo3::exceptions::PyValueError, _>)?;
 
     let prepend_count = data_slice.len() - result.len();
@@ -125,7 +123,8 @@ fn kama<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: Option<usize>
 
 // Standard deviation
 #[pyfunction]
-fn stddev<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize, ddof: Option<usize>) -> PyResult<&'py PyArray1<f64>> {
+#[pyo3(signature = (data, period, ddof = 0))]
+fn stddev<'py>(py: Python<'py>, data: PyReadonlyArray1<f64>, period: usize, ddof: usize) -> PyResult<Bound<'py, PyArray1<f64>>> {
     let data_slice = data.as_slice()?;
     let mut stddev = StdDev::new(data_slice, period, ddof).unwrap();
     let mut result = stddev.calculate().map_err(PyErr::new::<pyo3::exceptions::PyValueError, _>)?;
@@ -143,7 +142,7 @@ fn vwma<'py>(
     data: PyReadonlyArray1<f64>,
     volume: PyReadonlyArray1<f64>,
     period: usize
-) -> PyResult<&'py PyArray1<f64>> {
+) -> PyResult<Bound<'py, PyArray1<f64>>> {
     let data_slice = data.as_slice()?;
     let volume_slice = volume.as_slice()?;
     let mut vwma = Vwma::new(data_slice, volume_slice, period).unwrap();
@@ -162,7 +161,7 @@ fn atr<'py>(
     low: PyReadonlyArray1<f64>,
     close: PyReadonlyArray1<f64>,
     period: Option<usize>
-) -> PyResult<&'py PyArray1<f64>> {
+) -> PyResult<Bound<'py, PyArray1<f64>>> {
     let high_slice = high.as_slice()?;
     let low_slice = low.as_slice()?;
     let close_slice = close.as_slice()?;
@@ -177,14 +176,15 @@ fn atr<'py>(
 
 /// Optimized Bollinger Bands function
 #[pyfunction]
+#[pyo3(signature = (data, period, std_dev, ma_type, volume = None))]
 fn bbands<'py>(
     py: Python<'py>,
     data: PyReadonlyArray1<f64>,
     period: usize,
     std_dev: f64,
-    ma_type: &PyString,
+    ma_type: Bound<'py, PyString>,
     volume: Option<PyReadonlyArray1<f64>>,
-) -> PyResult<&'py PyAny> {
+) -> PyResult<Bound<'py, PyAny>> {
     let data_slice = data.as_slice()?;
 
     let volume_data = match volume.as_ref() {
@@ -232,14 +232,15 @@ fn bbands<'py>(
 
 /// Optimized Bollinger Bands %b function
 #[pyfunction]
+#[pyo3(signature = (data, period, std_dev, ma_type, volume = None))]
 fn bbpb<'py>(
     py: Python<'py>,
     data: PyReadonlyArray1<f64>,
     period: usize,
     std_dev: f64,
-    ma_type: &PyString,
+    ma_type: &Bound<'py, PyString>,
     volume: Option<PyReadonlyArray1<f64>>,
-) -> PyResult<&'py PyArray1<f64>> {
+) -> PyResult<Bound<'py, PyArray1<f64>>> {
     let data_slice = data.as_slice()?;
     let ma_type_str = ma_type.to_str()?;
     let volume_data = match volume.as_ref() {
