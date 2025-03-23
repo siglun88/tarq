@@ -10,3 +10,6 @@ build-backend = "maturin"
 
 [tool.poetry.dependencies]
 python = ">=3.10"
+
+[tool.maturin]
+include = ["tarq.pyi"]
