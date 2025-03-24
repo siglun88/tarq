@@ -20,7 +20,7 @@ harness = false
 
 [dependencies]
 rand = "0.9.0"
-pyo3 = { version = "0.24", features = ["extension-module", "abi3-py310"] }
+pyo3 = { version = "0.24", features = ["extension-module", "abi3"] }
 numpy = "0.24"
 
 
