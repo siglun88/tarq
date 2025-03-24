@@ -117,7 +117,7 @@ def bbands(data: np.ndarray, period: int, std_dev: float, ma_type: str, volume: 
     """
     pass
 
-def bbpb(data: np.ndarray, period: int, std_dev: float, ma_type: str) -> np.ndarray:
+def bbpb(data: np.ndarray, period: int, std_dev: float, ma_type: str, volume: Optional[np.ndarray] = None) -> np.ndarray:
     """
     Calculate Bollinger Bands %b (Percent Bandwidth).
     
