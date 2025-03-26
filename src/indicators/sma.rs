@@ -43,12 +43,9 @@ impl Iterator for Sma<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
 
-        
-
         if self.index > self.len - self.period {
             return None;
         }
-
 
         let result = self.sum * self.inv_period;
 
@@ -72,7 +69,12 @@ impl<'a> Indicator<'a> for Sma<'a> {
     type Output = Vec<f64>;
 
     fn calculate(&mut self) -> Result<Self::Output, String> {
-        Ok(self.collect()) // Collect the iterator output into a Vec<f64>
+        let mut result = Vec::with_capacity(self.len);
+        result.extend(self);
+
+        Ok(result)
+
+
     }
 }
 

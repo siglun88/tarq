@@ -65,6 +65,8 @@ pub struct Wma<'a> {
     period_sub: f64,
     /// Precomputed sum of weights for normalization.
     weight_total: f64,
+    /// Length of iterator when initialized.
+    len: usize,
 }
 
 impl<'a> Wma<'a> {
@@ -106,6 +108,7 @@ impl<'a> Wma<'a> {
             period_sum: 0.0, // Will be computed when next() is first called
             period_sub: 0.0,
             weight_total,
+            len: data.len(),
         })
     }
 }
@@ -149,6 +152,11 @@ impl Iterator for Wma<'_> {
             Some(wma_value)
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len.saturating_sub(self.period + self.index) + 1;
+        (remaining, Some(remaining))
+    }
 }
 
 impl<'a> Indicator<'a> for Wma<'a> {
@@ -171,7 +179,10 @@ impl<'a> Indicator<'a> for Wma<'a> {
     /// println!("WMA Values: {:?}", wma_values);
     /// ```
     fn calculate(&mut self) -> Result<Self::Output, String> {
-        Ok(self.collect())
+        let mut result = Vec::with_capacity(self.len);
+        result.extend(self);
+
+        Ok(result)
     }
 }
 

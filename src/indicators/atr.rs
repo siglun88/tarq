@@ -8,6 +8,7 @@ pub struct Atr<'a> {
     period: usize,
     index: usize,
     previous_tr: f64,
+    len: usize,
 }
 
 impl<'a> Atr<'a> {
@@ -29,6 +30,7 @@ impl<'a> Atr<'a> {
             period,
             index: 0,
             previous_tr: 0.0,
+            len: close.len(),
         })
     }
 
@@ -39,7 +41,7 @@ impl Iterator for Atr<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         // Stop if the index goes out of bounds
-        if self.index + self.period >= self.high.len() {
+        if self.index + self.period >= self.len {
             return None;
         }
 
@@ -76,13 +78,21 @@ impl Iterator for Atr<'_> {
 
         Some(self.previous_tr)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len.saturating_sub(self.period + self.index) + 1;
+        (remaining, Some(remaining))
+    }
 }
 
 impl<'a> Indicator<'a> for Atr<'a> {
     type Output = Vec<f64>;
 
     fn calculate(&mut self) -> Result<Self::Output, String> {
-        Ok(self.collect()) // Collect the ATR values into a Vec<f64>
+        let mut result = Vec::with_capacity(self.len);
+        result.extend(self);
+
+        Ok(result)
     }
 }
 

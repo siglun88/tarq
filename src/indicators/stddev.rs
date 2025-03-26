@@ -35,7 +35,7 @@
 //! let price_data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0];
 //! let period = 3;
 //!
-//! let mut stddev = StdDev::new(&price_data, period, None).unwrap();
+//! let mut stddev = StdDev::new(&price_data, period, 0).unwrap();
 //!
 //! let stddev_values = stddev.calculate().unwrap();
 //!
@@ -66,6 +66,8 @@ pub struct StdDev<'a> {
     sum_sq: f64,
     /// Degrees of freedom adjustment (default is 0).
     ddof: usize,
+    /// Length of iterator when initialized.
+    len: usize,
 }
 
 impl<'a> StdDev<'a> {
@@ -87,7 +89,7 @@ impl<'a> StdDev<'a> {
     /// use tarq::indicators::stddev::StdDev;
     ///
     /// let price_data = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-    /// let stddev = StdDev::new(&price_data, 3, None);
+    /// let stddev = StdDev::new(&price_data, 3, 0);
     ///
     /// assert!(stddev.is_ok());
     /// ```
@@ -108,6 +110,7 @@ impl<'a> StdDev<'a> {
             sma,
             sum_sq: 0.0,
             ddof,
+            len: data.len(),
         })
     }
 }
@@ -141,6 +144,11 @@ impl Iterator for StdDev<'_> {
         self.index += 1;
         Some(std_dev)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len.saturating_sub(self.period + self.index) + 1;
+        (remaining, Some(remaining))
+    }
 }
 
 impl<'a> Indicator<'a> for StdDev<'a> {
@@ -156,14 +164,17 @@ impl<'a> Indicator<'a> for StdDev<'a> {
     /// use tarq::indicators::stddev::StdDev;
     ///
     /// let price_data = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-    /// let mut stddev = StdDev::new(&price_data, 3, None).unwrap();
+    /// let mut stddev = StdDev::new(&price_data, 3, 0).unwrap();
     ///
     /// let stddev_values = stddev.calculate().unwrap();
     ///
     /// println!("Standard Deviation Values: {:?}", stddev_values);
     /// ```
     fn calculate(&mut self) -> Result<Self::Output, String> {
-        Ok(self.collect())
+        let mut result = Vec::with_capacity(self.len);
+        result.extend(self);
+
+        Ok(result)
     }
 }
 

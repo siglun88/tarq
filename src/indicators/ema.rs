@@ -60,6 +60,8 @@ pub struct Ema<'a> {
     prev_ema: f64,
     /// The smoothing factor used in the EMA formula.
     smoothing: f64,
+    /// Length of iterator when initialized.
+    len: usize,
 }
 
 impl<'a> Ema<'a> {
@@ -98,6 +100,7 @@ impl<'a> Ema<'a> {
             index: 0,
             prev_ema: 0.0,
             smoothing: 2.0 / (period as f64 + 1.0),
+            len: data.len(),
         })
     }
 }
@@ -126,6 +129,11 @@ impl Iterator for Ema<'_> {
 
         None
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len.saturating_sub(self.period + self.index) + 1;
+        (remaining, Some(remaining))
+    }
 }
 
 impl<'a> Indicator<'a> for Ema<'a> {
@@ -148,7 +156,10 @@ impl<'a> Indicator<'a> for Ema<'a> {
     /// println!("EMA Values: {:?}", ema_values);
     /// ```
     fn calculate(&mut self) -> Result<Self::Output, String> {
-        Ok(self.collect()) // Collect all EMA values
+        let mut result = Vec::with_capacity(self.len);
+        result.extend(self);
+
+        Ok(result)
     }
 }
 

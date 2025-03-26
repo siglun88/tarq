@@ -80,6 +80,8 @@ pub struct Kama<'a> {
     sum_roc: f64,
     /// Last trailing value used for ROC calculations.
     trailing_value: f64,
+    /// Length of iterator when initialized.
+    len: usize,
 }
 
 impl<'a> Kama<'a> {
@@ -141,6 +143,7 @@ impl<'a> Kama<'a> {
             prev_kama,
             sum_roc,
             trailing_value: data[0],
+            len: data.len(),
         })
     }
 
@@ -187,6 +190,11 @@ impl Iterator for Kama<'_> {
 
         Some(kama)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len.saturating_sub(self.period + self.index) + 1;
+        (remaining, Some(remaining))
+    }
 }
 
 impl<'a> Indicator<'a> for Kama<'a> {
@@ -211,7 +219,10 @@ impl<'a> Indicator<'a> for Kama<'a> {
     /// println!("KAMA Values: {:?}", kama_values);
     /// ```
     fn calculate(&mut self) -> Result<Self::Output, String> {
-        Ok(self.collect())
+        let mut result = Vec::with_capacity(self.len);
+        result.extend(self);
+
+        Ok(result)
     }
 }
 

@@ -69,6 +69,8 @@ pub struct BBands<'a> {
     rolling_sq_sum: f64,
     /// Simple Moving Average (SMA) instance used for initial mean calculation.
     sma: Sma<'a>,
+    /// Length of the iterator when initialized.
+    len: usize,
 }
 
 impl<'a> BBands<'a> {
@@ -116,6 +118,7 @@ impl<'a> BBands<'a> {
             index: 0,
             rolling_sq_sum: 0.0,
             sma,
+            len: data.len(),
         })
     }
 }
@@ -166,6 +169,11 @@ impl Iterator for BBands<'_> {
 
         Some((upper, middle_band, lower))
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len.saturating_sub(self.period + self.index) + 1;
+        (remaining, Some(remaining))
+    }
 }
 
 impl<'a> Indicator<'a> for BBands<'a> {
@@ -192,7 +200,7 @@ impl<'a> Indicator<'a> for BBands<'a> {
     /// println!("Lower Band: {:?}", lower);
     /// ```
     fn calculate(&mut self) -> Result<Self::Output, String> {
-        let len = self.data.len() - self.period + 1;
+        let len = self.data.len();
     
         let mut upper_band = Vec::with_capacity(len);
         let mut middle_band = Vec::with_capacity(len);

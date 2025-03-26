@@ -22,6 +22,8 @@ pub struct Tema<'a> {
     prev_ema3: f64,
     /// The smoothing factor used in the EMA formula.
     smoothing: f64,
+    /// Lenght of iterator when initialized.
+    len: usize,
 }
 
 impl<'a> Tema<'a> {
@@ -51,6 +53,7 @@ impl<'a> Tema<'a> {
             prev_ema2: 0.0,
             prev_ema3: 0.0,
             smoothing: 2.0 / (period as f64 + 1.0),
+            len: data.len(),
         })
     }
 }
@@ -121,6 +124,11 @@ impl Iterator for Tema<'_> {
         self.index += 1;
         Some(tema)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len.saturating_sub(self.index + (3 * self.period - 3)) + 1;
+        (remaining, Some(remaining))
+    }
 }
 
 impl<'a> Indicator<'a> for Tema<'a> {
@@ -130,7 +138,9 @@ impl<'a> Indicator<'a> for Tema<'a> {
     ///
     /// Returns a vector containing the TEMA values over the dataset.
     fn calculate(&mut self) -> Result<Self::Output, String> {
-        let result: Vec<f64> = self.collect();
+        let mut result = Vec::with_capacity(self.len);
+        result.extend(self);
+
         Ok(result)
     }
 }

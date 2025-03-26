@@ -65,6 +65,8 @@ pub struct Vwma<'a> {
     rolling_sum: f64,
     /// Rolling sum of volume values.
     rolling_sum_vol: f64,
+    /// Length of iterator when initialized.
+    len: usize,
 }
 
 impl<'a> Vwma<'a> {
@@ -110,6 +112,7 @@ impl<'a> Vwma<'a> {
             index: 0,
             rolling_sum: 0.0,
             rolling_sum_vol: 0.0,
+            len: data.len(),
         })
     }
 }
@@ -150,6 +153,11 @@ impl Iterator for Vwma<'_> {
 
         Some(vwma)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len.saturating_sub(self.period + self.index) + 1;
+        (remaining, Some(remaining))
+    }
 }
 
 impl<'a> Indicator<'a> for Vwma<'a> {
@@ -173,7 +181,10 @@ impl<'a> Indicator<'a> for Vwma<'a> {
     /// println!("VWMA Values: {:?}", vwma_values);
     /// ```
     fn calculate(&mut self) -> Result<Self::Output, String> {
-        Ok(self.collect()) // Collect all VWMA values
+        let mut result = Vec::with_capacity(self.len);
+        result.extend(self);
+
+        Ok(result)
     }
 }
 

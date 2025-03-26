@@ -60,6 +60,8 @@ pub struct Dema<'a> {
     prev_ema2: f64,
     /// The smoothing factor used in the EMA formula.
     smoothing: f64,
+    /// Length of iterator when initialized.
+    len: usize,
 }
 
 impl<'a> Dema<'a> {
@@ -101,6 +103,7 @@ impl<'a> Dema<'a> {
             prev_ema1: 0.0,
             prev_ema2: 0.0,
             smoothing: 2.0 / (period as f64 + 1.0),
+            len: data.len(),
         })
     }
 }
@@ -157,6 +160,11 @@ impl Iterator for Dema<'_> {
         self.index += 1;
         Some(dema)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len.saturating_sub(self.index + (2 * self.period - 2)) + 1;
+        (remaining, Some(remaining))
+    }
 }
 
 
@@ -181,9 +189,11 @@ impl<'a> Indicator<'a> for Dema<'a> {
     /// println!("DEMA Values: {:?}", dema_values);
     /// ```
     fn calculate(&mut self) -> Result<Self::Output, String> {
-        let result: Vec<f64> = self.collect();
+        let mut result = Vec::with_capacity(self.len);
+        result.extend(self);
+
         Ok(result)
-    }
+    }   
 }
 
 

@@ -66,6 +66,8 @@ pub struct Bbpb<'a> {
     index: usize,
     /// Bollinger Bands instance used for upper and lower band calculations.
     bbands: BBands<'a>,
+    /// Length of the iterator when initialized.
+    len: usize,
 }
 
 impl<'a> Bbpb<'a> {
@@ -111,6 +113,7 @@ impl<'a> Bbpb<'a> {
             period,
             index: 0,
             bbands,
+            len: data.len(),
         })
     }
 }
@@ -131,6 +134,11 @@ impl Iterator for Bbpb<'_> {
 
         self.index += 1;
         Some(bandwith)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len.saturating_sub(self.period + self.index) + 1;
+        (remaining, Some(remaining))
     }
 }
 
@@ -158,7 +166,10 @@ impl<'a> Indicator<'a> for Bbpb<'a> {
     /// println!("Bollinger %b Values: {:?}", bb_percent);
     /// ```
     fn calculate(&mut self) -> Result<Self::Output, String> {
-        Ok(self.collect())
+        let mut result = Vec::with_capacity(self.len);
+        result.extend(self);
+
+        Ok(result)
     }
 }
 
